@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Text
 from datetime import datetime, timezone
 from data.database import Base
 
@@ -11,7 +11,7 @@ class User(Base):
     password = Column(String, nullable=False)
     address = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=False)
-    phone_no = Column(String(10), nullable=True)  # Changed to string
+    phone_no = Column(Text, nullable=True)  # Changed to string
     created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     post_code = Column(Integer, nullable=True)
     role = Column(String, default="user")

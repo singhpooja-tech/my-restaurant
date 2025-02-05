@@ -33,7 +33,8 @@ def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
 
 
 # Login Endpoint (Authenticates User & Returns JWT Token)
-@app.post("/login", response_model=TokenResponse)
+
+@app.post("/login", response_model=TokenResponse, include_in_schema=False)
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = get_user_by_username(db, form_data.username)
     if not user or not verify_password(form_data.password, user.password):
@@ -41,7 +42,11 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
 
     # Generate JWT token
     access_token = create_access_token(data={"sub": user.user_name})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "message": "Welcome to my restaurant"
+    }
 
 
 # Protected Endpoint (Fetches User Info Based on JWT Token)
@@ -57,5 +62,3 @@ def get_me(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "created_date": current_user.created_date
     }
-
-

@@ -25,13 +25,11 @@ def create_user(db: Session, user: UserCreate):
 
     hashed_password = hash_password(user.password)  # Hash the password
     db_user = User(
+        fullname=user.fullname,
         user_name=user.user_name,
         email=user.email,
         password=hashed_password,
-        fullname=user.fullname,
-        address=user.address,
-        phone_no=user.phone_no,
-        post_code=user.post_code
+        phone_no=user.phone_no  # Only use phone_no as it exists in UserCreate
     )
     db.add(db_user)
     db.commit()
