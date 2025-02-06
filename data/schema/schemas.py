@@ -25,7 +25,13 @@ class UserCreate(BaseModel):
     #     return v
 
 
+class UserLogin(BaseModel):
+    user_name: str
+    password: constr(min_length=6)  # Password must be at least 6 characters long
+
+
 # JWT Token Response Schema
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+    message: str

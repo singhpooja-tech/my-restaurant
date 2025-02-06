@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from data.database import SessionLocal
 from auth import create_access_token, get_current_user
 from data.curd import create_user, get_user_by_username, verify_password
-from data.schema.schemas import UserCreate, TokenResponse
+from data.schema.schemas import UserCreate, TokenResponse, UserLogin
 from fastapi.security import OAuth2PasswordRequestForm
 from data.model.models import User
 
@@ -34,17 +34,17 @@ def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
 
 # Login Endpoint (Authenticates User & Returns JWT Token)
 
-@app.post("/login", response_model=TokenResponse, include_in_schema=False)
-def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = get_user_by_username(db, form_data.username)
-    if not user or not verify_password(form_data.password, user.password):
+@app.post("/login", response_model=TokenResponse)
+def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
+    user = get_user_by_username(db, login_data.user_name)
+    if not user or not verify_password(login_data.password, user.password):
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
     # Generate JWT token
     access_token = create_access_token(data={"sub": user.user_name})
     return {
         "access_token": access_token,
-        "token_type": "bearer",
+        "token_type": "success",
         "message": "Welcome to my restaurant"
     }
 
