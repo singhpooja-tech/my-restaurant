@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, constr, field_validator
 from typing import Optional
+from datetime import datetime
 
 
 # User Signup Schema
@@ -31,7 +32,22 @@ class UserLogin(BaseModel):
 
 
 # JWT Token Response Schema
-class TokenResponse(BaseModel):
+class TokenLoginResponse(BaseModel):
     access_token: str
-    token_type: str
     message: str
+
+
+class TokenSignupResponse(BaseModel):
+    message: str
+    token_type: str
+
+
+class UserInformation(BaseModel):
+    fullname: str
+    user_name: str
+    email: EmailStr
+    phone_no: str
+    address: str | None
+    post_code: int | None
+    role: str
+    created_date: datetime

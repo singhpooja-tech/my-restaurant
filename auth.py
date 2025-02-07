@@ -3,7 +3,7 @@ from jose import JWTError, jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends, HTTPException,Security
 from sqlalchemy.orm import Session
-from data.database import SessionLocal
+from data.database import *
 from data.model.models import User
 import os
 from dotenv import load_dotenv
@@ -15,7 +15,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 
 # Use HTTPBearer instead of OAuth2PasswordBearer
 security = HTTPBearer()
@@ -30,8 +32,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 
 # Function to verify JWT and get user
-# Function to verify JWT and get user
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security), db: Session = Depends(SessionLocal)):
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security), db: Session = Depends(get_db)):
     token = credentials.credentials  # Extract Bearer token
     credentials_exception = HTTPException(
         status_code=401, detail="Invalid credentials",
