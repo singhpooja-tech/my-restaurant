@@ -61,7 +61,8 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 # Update Current User Route
 @app.put("/me/update", response_model=UserInformation)
-def get_updated_user(user_update: UserProfileUpdate, current_user: User = Depends(get_current_user),
+def get_updated_user(user_update: UserProfileUpdate,
+                     current_user: User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
     """
         Update the current user's information.

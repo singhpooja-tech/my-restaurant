@@ -15,3 +15,7 @@ class User(Base):
     created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     post_code = Column(Integer, nullable=True)
     role = Column(String, default="user")
+
+class Category(Base):
+    __tablename__ ="food_category"
+
