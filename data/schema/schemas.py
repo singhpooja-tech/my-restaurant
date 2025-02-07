@@ -42,6 +42,7 @@ class TokenSignupResponse(BaseModel):
     token_type: str
 
 
+# JWT get user profile Token Response Schema
 class UserInformation(BaseModel):
     fullname: str
     user_name: str
@@ -51,3 +52,13 @@ class UserInformation(BaseModel):
     post_code: int | None
     role: str
     created_date: datetime
+
+
+# JWT get updated user profile Token Response Schema
+class UserProfileUpdate(BaseModel):
+    fullname: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone_no: Optional[str] = None
+    address: Optional[str] = None
+    post_code: Optional[int] = None
+

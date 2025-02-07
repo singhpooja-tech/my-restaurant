@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from data.schema.schemas import UserCreate
+from data.schema.schemas import UserCreate, UserProfileUpdate
 from data.model.models import User
 from passlib.context import CryptContext
 
@@ -42,4 +42,21 @@ def get_user_by_username(db: Session, user_name: str):
     user = db.query(User).filter(User.user_name == user_name).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
+    return user
+
+
+# Function to update user information (Point 3)
+def update_user_info(db: Session, user_id: int, user_update: UserProfileUpdate):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Update only provided fields (using model_dump instead of dict)
+    update_data = user_update.model_dump(exclude_unset=True)  # Pydantic v2 fix
+
+    for key, value in update_data.items():
+        setattr(user, key, value)  # Dynamically update fields
+
+    db.commit()  # Save changes
+    db.refresh(user)  # Refresh to get updated values
     return user

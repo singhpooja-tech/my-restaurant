@@ -1,8 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import FastAPI, Depends
 from data.database import *
 from auth import create_access_token, get_current_user
-from data.curd import create_user, get_user_by_username, verify_password
+from data.curd import *
 from data.schema.schemas import *
 from data.model.models import User
 from swagger_config import custom_openapi  # Import the custom Swagger configuration
@@ -42,7 +41,7 @@ def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
 
 
 # Protected Route
-@app.get("/me" , response_model=UserInformation)
+@app.get("/me", response_model=UserInformation)
 def get_me(current_user: User = Depends(get_current_user)):
     """
     Get the current user's information.
@@ -57,4 +56,26 @@ def get_me(current_user: User = Depends(get_current_user)):
         "post_code": current_user.post_code,
         "role": current_user.role,
         "created_date": current_user.created_date
+    }
+
+
+# Update Current User Route
+@app.put("/me/update", response_model=UserInformation)
+def get_updated_user(user_update: UserProfileUpdate, current_user: User = Depends(get_current_user),
+                     db: Session = Depends(get_db)):
+    """
+        Update the current user's information.
+        Requires a valid JWT token for authentication.
+        """
+
+    updated_user = update_user_info(db, current_user.user_id, user_update)
+    return {
+        "fullname": updated_user.fullname,
+        "user_name": updated_user.user_name,
+        "email": updated_user.email,
+        "phone_no": updated_user.phone_no,
+        "address": updated_user.address,
+        "post_code": updated_user.post_code,
+        "role": updated_user.role,
+        "created_date": updated_user.created_date
     }
