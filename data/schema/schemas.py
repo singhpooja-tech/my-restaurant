@@ -5,7 +5,7 @@ from datetime import datetime
 
 # User Signup Schema
 class UserCreate(BaseModel):
-    fullname:str
+    fullname: str
     user_name: str
     email: EmailStr
     password: constr(min_length=6)  # Password must be at least 6 characters long
@@ -61,4 +61,10 @@ class UserProfileUpdate(BaseModel):
     phone_no: Optional[str] = None
     address: Optional[str] = None
     post_code: Optional[int] = None
+
+
+class FoodCategoryCreate(BaseModel):
+    name: str
+    image_url: Optional[bytes] = None  # Binary image data
+    is_active: bool = True
 

@@ -1,11 +1,13 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from data.schema.schemas import UserCreate, UserProfileUpdate
-from data.model.models import User
+from data.schema.schemas import UserCreate, UserProfileUpdate, FoodCategoryCreate
+from data.model.models import User, FoodCategory
 from passlib.context import CryptContext
 
 # Password hashing setup
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+hashed_password = pwd_context.hash("pooja123456")
+print(hashed_password)
 
 
 def hash_password(password: str):
@@ -45,14 +47,14 @@ def get_user_by_username(db: Session, user_name: str):
     return user
 
 
-# Function to update user information (Point 3)
+# Function to update user information according role
 def update_user_info(db: Session, user_id: int, user_update: UserProfileUpdate):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # Update only provided fields (using model_dump instead of dict)
-    update_data = user_update.model_dump(exclude_unset=True)  # Pydantic v2 fix
+    update_data = user_update.model_dump(exclude_unset=True)  # Pydantic v2
 
     for key, value in update_data.items():
         setattr(user, key, value)  # Dynamically update fields
@@ -60,3 +62,20 @@ def update_user_info(db: Session, user_id: int, user_update: UserProfileUpdate):
     db.commit()  # Save changes
     db.refresh(user)  # Refresh to get updated values
     return user
+
+
+def create_food_category(db: Session, category: FoodCategoryCreate, current_user: User):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can add food categories")
+
+    new_category = FoodCategory(
+        name=category.name,
+        image_url=category.image_url,
+        is_active=category.is_active
+    )
+
+    db.add(new_category)
+    db.commit()
+    db.refresh(new_category)
+    return new_category
+

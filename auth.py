@@ -41,6 +41,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_name = payload.get("sub")
+        role = payload.get("role")  # Extract role from the token
         if user_name is None:
             raise credentials_exception
     except JWTError:
@@ -49,4 +50,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     user = db.query(User).filter(User.user_name == user_name).first()
     if user is None:
         raise credentials_exception
+
+    # Attach role to the user object
+    user.role = role
     return user
+

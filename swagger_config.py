@@ -21,7 +21,7 @@ def custom_openapi(app):
     }
 
     # Apply authentication to protected routes only
-    protected_routes = ["/me", "/me/update"]  # Add other protected routes here if needed
+    protected_routes = ["/me", "/me/update", "/food-category/create"]  # Add other protected routes here if needed
     for path, methods in openapi_schema["paths"].items():
         for method in methods.values():
             if path in protected_routes:
@@ -31,3 +31,4 @@ def custom_openapi(app):
 
     app.openapi_schema = openapi_schema
     return openapi_schema
+
