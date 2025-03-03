@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from data.schema.schemas import UserCreate, UserProfileUpdate, FoodCategoryCreate
-from data.model.models import User, FoodCategory
+from data.schema.schemas import UserCreate, UserProfileUpdate, CreateFoodMenu
+from data.model.models import User, FoodMenu
 from passlib.context import CryptContext
 
 # Password hashing setup
@@ -64,18 +64,22 @@ def update_user_info(db: Session, user_id: int, user_update: UserProfileUpdate):
     return user
 
 
-def create_food_category(db: Session, category: FoodCategoryCreate, current_user: User):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can add food categories")
+def create_food_menu(db: Session, user_id: int, food_menu: CreateFoodMenu):
+    if db.query(FoodMenu).filter(FoodMenu.food_name == food_menu.food_name).first():
+        raise HTTPException(status_code=400, detail="This Food is already in menu")
 
-    new_category = FoodCategory(
-        name=category.name,
-        image_url=category.image_url,
-        is_active=category.is_active
+    menu = FoodMenu(
+        food_name=food_menu.food_name,
+        description=food_menu.description,
+        quantity=food_menu.quantity,
+        category=food_menu.category,
+        is_active=food_menu.is_active,
+        price=food_menu.price,
+        user_id=user_id  # Ensure this is an integer
     )
 
-    db.add(new_category)
+    db.add(menu)
     db.commit()
-    db.refresh(new_category)
-    return new_category
+    db.refresh(menu)
+    return menu
 

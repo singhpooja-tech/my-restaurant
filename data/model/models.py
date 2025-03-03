@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, LargeBinary, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, Float, ForeignKey
 from datetime import datetime, timezone
+from sqlalchemy.orm import relationship
 from data.database import Base
 
 
@@ -17,19 +18,29 @@ class User(Base):
     post_code = Column(Integer, nullable=True)
     role = Column(String, default="user", server_default="user")
 
+    # Relationship to FoodMenu
+    food_menus = relationship("FoodMenu", back_populates="owner")
+
     def __repr__(self):
         return f"<User(user_name={self.user_name}, email={self.email})>"
 
 
-class FoodCategory(Base):
-    __tablename__ = "food_category"
+class FoodMenu(Base):
+    __tablename__ = "food_menu"
 
-    category_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, unique=True)
-    image_url = Column(LargeBinary, nullable=True)  # Stores image data as binary
-    is_active = Column(Boolean, nullable=False, server_default="1")  # Maps 'Y'/'N' to True/False
-    created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))  # Auto timestamp
+    food_id = Column(Integer, primary_key=True, index=True)
+    food_name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    quantity = Column(Integer, nullable=False)
+    category = Column(String, nullable=False)
+    is_active = Column(String, default="Yes")
+    created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    price = Column(Float, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.user_id"))
+
+    # Relationship to User
+    owner = relationship("User", back_populates="food_menus")
 
     def __repr__(self):
-        return f"<FoodCategory(name={self.name}, is_active={self.is_active})>"
+        return f"<Food(food_name={self.food_name}, price={self.price})>"
 

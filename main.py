@@ -3,13 +3,23 @@ from data.database import *
 from auth import create_access_token, get_current_user
 from data.curd import *
 from data.schema.schemas import *
-from data.model.models import User
+from data.model.models import User, FoodMenu
+from typing import List
 from swagger_config import custom_openapi  # Import the custom Swagger configuration
 
 app = FastAPI()
 
 # Apply the custom Swagger configuration
 app.openapi = lambda: custom_openapi(app)
+
+
+# Function to create all tables automatically
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+
+
+# Call create_tables once during application start
+create_tables()
 
 
 # Signup Endpoint (Public Route)
@@ -80,20 +90,27 @@ def get_updated_user(user_update: UserProfileUpdate,
     }
 
 
-# Admin-only Food Category Creation Endpoint
-@app.post("/food-category/create")
-def create_food_category_api(
-    category: FoodCategoryCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Create a new food category.
-    Only admins are authorized to perform this action.
-    """
-    new_category = create_food_category(db, category, current_user)
+@app.post("/food_menu/add", response_model=CreateFoodMenuResponse)
+def create_restaurant_food_menu(menu: CreateFoodMenu,
+                                db: Session = Depends(get_db),
+                                current_user: User = Depends(get_current_user)):
+    if current_user.role == "user":
+        raise HTTPException(status_code=403, detail="User are not Authorized to Add Food Menu")
+
+    create_food_menu(db, current_user.user_id, menu)
     return {
-        "message": "Food category added successfully",
-        "category_id": new_category.category_id
+        "message": "Food Item Successfully Added in Restaurant Food Menu"
+
     }
+
+
+@app.get("/get_food_menu", response_model=List[GetFoodMenuResponse])
+def get_restaurant_menu(db: Session = Depends(get_db)):
+    """
+        Get All the current Food Menu.
+    """
+    menu = db.query(FoodMenu).all()
+    return menu
+
+
 

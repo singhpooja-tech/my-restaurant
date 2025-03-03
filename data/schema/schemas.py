@@ -63,8 +63,23 @@ class UserProfileUpdate(BaseModel):
     post_code: Optional[int] = None
 
 
-class FoodCategoryCreate(BaseModel):
-    name: str
-    image_url: Optional[bytes] = None  # Binary image data
-    is_active: bool = True
+class CreateFoodMenu(BaseModel):
+    food_name: str
+    description: str | None
+    quantity: int
+    category: str
+    is_active: str
+    price: float
+
+
+class CreateFoodMenuResponse(BaseModel):
+    message: str
+
+
+class GetFoodMenuResponse(BaseModel):
+    food_id: int
+    food_name: str
+    description: str | None
+    category: str
+    price: float
 
