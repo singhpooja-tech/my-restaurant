@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends
+from sqlalchemy import func
 from data.database import *
 from auth import create_access_token, get_current_user
 from data.curd import *
@@ -15,7 +16,7 @@ app.openapi = lambda: custom_openapi(app)
 
 # Function to create all tables automatically
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)  # Recreates tables with new schema
 
 
 # Call create_tables once during application start
@@ -90,6 +91,7 @@ def get_updated_user(user_update: UserProfileUpdate,
     }
 
 
+# Create Restaurant Menu(Only Admin Can DO)
 @app.post("/food_menu/add", response_model=CreateFoodMenuResponse)
 def create_restaurant_food_menu(menu: CreateFoodMenu,
                                 db: Session = Depends(get_db),
@@ -104,6 +106,7 @@ def create_restaurant_food_menu(menu: CreateFoodMenu,
     }
 
 
+# Get Menu Item
 @app.get("/get_food_menu", response_model=List[GetFoodMenuResponse])
 def get_restaurant_menu(db: Session = Depends(get_db)):
     """
@@ -113,4 +116,36 @@ def get_restaurant_menu(db: Session = Depends(get_db)):
     return menu
 
 
+# Add Food Item In Cart(User Only)
+@app.post("/cart/add")
+def add_item_to_cart(cart_data: AddToCart,
+                     db: Session = Depends(get_db),
+                     current_user: User = Depends(get_current_user)):
+    if current_user.role == "admin":
+        raise HTTPException(status_code=403, detail="Only User Can Add Item")
 
+    cart_item = add_to_cart(db, current_user.user_id, cart_data)
+    return {
+        "message": f"{cart_item.food_name} added to cart successfully",
+        "total_price": cart_item.total_price
+    }
+
+
+# Get Cart Item
+@app.get("/cart", response_model=CartResponse)
+def view_cart(db: Session = Depends(get_db),
+              current_user: User = Depends(get_current_user)):
+    if current_user.role == "admin":
+        raise HTTPException(status_code=403, detail="Only User Can see Item")
+
+    # Get all cart items for the current user
+    cart_items = db.query(Cart).filter(Cart.user_id == current_user.user_id).all()
+
+    # Calculate the total price by summing up the 'total_price' column for all items
+    total_price = db.query(func.sum(Cart.total_price)).filter(Cart.user_id == current_user.user_id).scalar()
+
+    # Return cart items along with the total price
+    return {
+        "cart_items": cart_items,
+        "total_price": total_price if total_price else 0.0  # Return 0 if no items are in the cart
+    }

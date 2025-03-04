@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from data.schema.schemas import UserCreate, UserProfileUpdate, CreateFoodMenu
-from data.model.models import User, FoodMenu
+from data.schema.schemas import UserCreate, UserProfileUpdate, CreateFoodMenu, AddToCart
+from data.model.models import User, FoodMenu, Cart
 from passlib.context import CryptContext
 
 # Password hashing setup
@@ -64,6 +64,7 @@ def update_user_info(db: Session, user_id: int, user_update: UserProfileUpdate):
     return user
 
 
+# Function to Create Restaurant Food Menu
 def create_food_menu(db: Session, user_id: int, food_menu: CreateFoodMenu):
     if db.query(FoodMenu).filter(FoodMenu.food_name == food_menu.food_name).first():
         raise HTTPException(status_code=400, detail="This Food is already in menu")
@@ -83,3 +84,31 @@ def create_food_menu(db: Session, user_id: int, food_menu: CreateFoodMenu):
     db.refresh(menu)
     return menu
 
+
+# Function to Add Food Item InTo Cart
+def add_to_cart(db: Session, user_id: int, cart_data: AddToCart):
+    # Fetch food details
+    food_item = db.query(FoodMenu).filter(FoodMenu.food_id == cart_data.food_id).first()
+
+    if not food_item:
+        raise HTTPException(status_code=404, detail="Food item not found")
+
+    if cart_data.quantity > food_item.quantity:
+        raise HTTPException(status_code=400, detail="Not enough quantity available")
+
+    total_price = cart_data.quantity * food_item.price  # Calculate total price
+
+    # Create cart item
+    cart_item = Cart(
+        food_id=food_item.food_id,
+        food_name=food_item.food_name,
+        quantity=cart_data.quantity,
+        price=food_item.price,
+        total_price=total_price,  # Store calculated total price
+        user_id=user_id
+    )
+
+    db.add(cart_item)
+    db.commit()
+    db.refresh(cart_item)
+    return cart_item

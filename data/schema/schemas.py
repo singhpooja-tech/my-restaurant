@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr, field_validator
 from typing import Optional
 from datetime import datetime
+from typing import List
 
 
 # User Signup Schema
@@ -63,6 +64,7 @@ class UserProfileUpdate(BaseModel):
     post_code: Optional[int] = None
 
 
+# Create Restaurant Menu
 class CreateFoodMenu(BaseModel):
     food_name: str
     description: str | None
@@ -83,3 +85,22 @@ class GetFoodMenuResponse(BaseModel):
     category: str
     price: float
 
+
+# Create Cart to store Order Food
+class AddToCart(BaseModel):
+    food_id: int
+    quantity: int
+
+
+class CartItemResponse(BaseModel):
+    food_id: int
+    food_name: str
+    quantity: int
+    price: float
+    total_price: float  # This field is already in your Cart model
+
+
+# Model for the complete Cart Response including the total price
+class CartResponse(BaseModel):
+    cart_items: List[CartItemResponse]
+    total_price: float  # Single total price for all cart items
