@@ -24,7 +24,7 @@ create_tables()
 
 
 # Signup Endpoint (Public Route)
-@app.post("/user/create", response_model=TokenSignupResponse)
+@app.post("/user/create", response_model=TokenSignupResponse, tags=["User"])
 def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
     try:
         created_user = create_user(db, user)
@@ -38,7 +38,7 @@ def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
 
 
 # Login Endpoint
-@app.post("/login", response_model=TokenLoginResponse)
+@app.post("/login", response_model=TokenLoginResponse, tags=["User"])
 def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
     user = get_user_by_username(db, login_data.user_name)
     if not user or not verify_password(login_data.password, user.password):
@@ -52,7 +52,7 @@ def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
 
 
 # Protected Route
-@app.get("/me", response_model=UserInformation)
+@app.get("/me", response_model=UserInformation, tags=["User"])
 def get_me(current_user: User = Depends(get_current_user)):
     """
     Get the current user's information.
@@ -71,7 +71,7 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 # Update Current User (Admins cannot update users)
-@app.put("/me/update", response_model=UserInformation)
+@app.put("/me/update", response_model=UserInformation, tags=["User"])
 def get_updated_user(user_update: UserProfileUpdate,
                      current_user: User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
@@ -92,7 +92,7 @@ def get_updated_user(user_update: UserProfileUpdate,
 
 
 # Create Restaurant Menu(Only Admin Can DO)
-@app.post("/food_menu/add", response_model=CreateFoodMenuResponse)
+@app.post("/food_menu/add", response_model=CreateFoodMenuResponse, tags=["Admin"])
 def create_restaurant_food_menu(menu: CreateFoodMenu,
                                 db: Session = Depends(get_db),
                                 current_user: User = Depends(get_current_user)):
@@ -107,7 +107,7 @@ def create_restaurant_food_menu(menu: CreateFoodMenu,
 
 
 # Get Menu Item
-@app.get("/get_food_menu", response_model=List[GetFoodMenuResponse])
+@app.get("/get_food_menu", response_model=List[GetFoodMenuResponse], tags=["User"])
 def get_restaurant_menu(db: Session = Depends(get_db)):
     """
         Get All the current Food Menu.
@@ -117,7 +117,7 @@ def get_restaurant_menu(db: Session = Depends(get_db)):
 
 
 # Add Food Item In Cart(User Only)
-@app.post("/cart/add")
+@app.post("/cart/add", tags=["User"])
 def add_item_to_cart(cart_data: AddToCart,
                      db: Session = Depends(get_db),
                      current_user: User = Depends(get_current_user)):
@@ -132,7 +132,7 @@ def add_item_to_cart(cart_data: AddToCart,
 
 
 # Get Cart Item
-@app.get("/cart", response_model=CartResponse)
+@app.get("/cart", response_model=CartResponse, tags=["User"])
 def view_cart(db: Session = Depends(get_db),
               current_user: User = Depends(get_current_user)):
     if current_user.role == "admin":
@@ -149,3 +149,41 @@ def view_cart(db: Session = Depends(get_db),
         "cart_items": cart_items,
         "total_price": total_price if total_price else 0.0  # Return 0 if no items are in the cart
     }
+
+
+@app.post("/order/place", tags=["User"])
+def place_order_api(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role == "admin":
+        raise HTTPException(status_code=403, detail="Only users can place orders")
+
+    return place_order(db, current_user.user_id)
+
+
+@app.post("/create/feedback/", tags=["User"])
+def create_feedback_endpoint(feedback: CreateFeedback,
+                             db: Session = Depends(get_db),
+                             current_user: User = Depends(get_current_user)):
+
+    # Check if the user is authorized to give feedback (you can modify role validation as needed)
+    if current_user.role == "admin":
+        raise HTTPException(status_code=403, detail="Admin cannot submit feedback")
+
+    # Call the CRUD function to store feedback
+    new_feedback = create_feedback(db, current_user.user_id,current_user.fullname, feedback)
+
+    return {
+        "message": "Feedback submitted successfully",
+        "feedback": new_feedback
+    }
+
+
+@app.get("/get/feedback/", tags=["Admin"])
+def get_all_feedback_endpoint(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can view all feedback")
+
+    # Fetch all feedback using the CRUD function
+    feedback_list = get_all_feedback(db)
+
+    return {"feedback": feedback_list}
+

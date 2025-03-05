@@ -1,13 +1,14 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from data.schema.schemas import UserCreate, UserProfileUpdate, CreateFoodMenu, AddToCart
-from data.model.models import User, FoodMenu, Cart
+from data.schema.schemas import *
+from data.model.models import *
 from passlib.context import CryptContext
 
 # Password hashing setup
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-hashed_password = pwd_context.hash("pooja123456")
-print(hashed_password)
+# hashed_password = pwd_context.hash("pooja123456")
+# print(hashed_password)
 
 
 def hash_password(password: str):
@@ -85,6 +86,19 @@ def create_food_menu(db: Session, user_id: int, food_menu: CreateFoodMenu):
     return menu
 
 
+def update_food_menu(db: Session, user_id: int, food_menu: FoodMenuUpdate):
+    take_food_id = db.query(FoodMenu).filter(FoodMenu.food_id).first()
+    if not take_food_id:
+        raise HTTPException(status_code=404, detail="food not found")
+    update_food = food_menu.model_dump(exclude_unset=True)
+    for key, value in update_food.items():
+        setattr(take_food_id, key, value)
+
+    db.commit()
+    db.refresh(take_food_id)
+    return take_food_id
+
+
 # Function to Add Food Item InTo Cart
 def add_to_cart(db: Session, user_id: int, cart_data: AddToCart):
     # Fetch food details
@@ -112,3 +126,70 @@ def add_to_cart(db: Session, user_id: int, cart_data: AddToCart):
     db.commit()
     db.refresh(cart_item)
     return cart_item
+
+
+def place_order(db: Session, user_id: int):
+    # Fetch all cart items for the user
+    cart_items = db.query(Cart).filter(Cart.user_id == user_id).all()
+
+    if not cart_items:
+        raise HTTPException(status_code=400, detail="Your cart is empty")
+
+    # Generate a single order ID (Auto-incremented)
+    first_order = OrderFood(
+        user_id=user_id,
+        user_fullname=db.query(User).filter(User.user_id == user_id).first().fullname,
+        status="Successful",
+        order_date=datetime.now(timezone.utc),
+        total_price=sum(item.total_price for item in cart_items),  # Total price of all cart items
+        food_id=cart_items[0].food_id,  # Assign first cart item's food_id (required to create entry)
+        food_name=cart_items[0].food_name,  # Assign first cart item's name
+        quantity=cart_items[0].quantity  # Assign first cart item's quantity
+    )
+    db.add(first_order)
+    db.commit()  # Commit first to generate order_no
+    db.refresh(first_order)
+
+    # Now use first_order.order_no for all order items
+    for cart_item in cart_items:
+        order = OrderFood(
+            order_no=first_order.order_no,  # Use the same order number for all items
+            food_id=cart_item.food_id,
+            food_name=cart_item.food_name,
+            quantity=cart_item.quantity,
+            user_id=cart_item.user_id,
+            user_fullname=first_order.user_fullname,
+            status="Successful",
+            total_price=cart_item.total_price,
+        )
+        db.add(order)
+
+        # Reduce food quantity from FoodMenu
+        food_item = db.query(FoodMenu).filter(FoodMenu.food_id == cart_item.food_id).first()
+        if food_item:
+            food_item.quantity -= cart_item.quantity
+
+    # Clear the cart after placing the order
+    db.query(Cart).filter(Cart.user_id == user_id).delete()
+
+    db.commit()
+    return {"message": "Order placed successfully!", "order_no": first_order.order_no}
+
+
+def create_feedback(db: Session, user_id: int, fullname: str, feedback: CreateFeedback):
+    """Create a feedback entry with the logged-in user's ID"""
+    new_feedback = Feedback(
+        user_id=user_id,
+        name=fullname,
+        message=feedback.message,
+        rating=feedback.rating
+    )
+    db.add(new_feedback)
+    db.commit()
+    db.refresh(new_feedback)
+    return new_feedback
+
+
+def get_all_feedback(db: Session):
+    """Fetch all feedback from the database"""
+    return db.query(Feedback).all()

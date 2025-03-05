@@ -74,6 +74,11 @@ class CreateFoodMenu(BaseModel):
     price: float
 
 
+class FoodMenuUpdate(BaseModel):
+    quantity: Optional[int] = None
+    price: Optional[float] = None
+
+
 class CreateFoodMenuResponse(BaseModel):
     message: str
 
@@ -81,6 +86,7 @@ class CreateFoodMenuResponse(BaseModel):
 class GetFoodMenuResponse(BaseModel):
     food_id: int
     food_name: str
+    quantity: int
     description: str | None
     category: str
     price: float
@@ -104,3 +110,10 @@ class CartItemResponse(BaseModel):
 class CartResponse(BaseModel):
     cart_items: List[CartItemResponse]
     total_price: float  # Single total price for all cart items
+
+
+class CreateFeedback(BaseModel):
+    message: str
+    rating: float
+
+
