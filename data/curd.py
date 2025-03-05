@@ -86,17 +86,29 @@ def create_food_menu(db: Session, user_id: int, food_menu: CreateFoodMenu):
     return menu
 
 
-def update_food_menu(db: Session, user_id: int, food_menu: FoodMenuUpdate):
-    take_food_id = db.query(FoodMenu).filter(FoodMenu.food_id).first()
-    if not take_food_id:
+# Function to Update Restaurant Food Menu Based On Given Food ID
+def update_food_menu_by_id(db: Session, food_id: int, food_menu: FoodMenuUpdate):
+    food = db.query(FoodMenu).filter(FoodMenu.food_id == food_id).first()
+    if not food:
         raise HTTPException(status_code=404, detail="food not found")
     update_food = food_menu.model_dump(exclude_unset=True)
     for key, value in update_food.items():
-        setattr(take_food_id, key, value)
+        setattr(food, key, value)
 
     db.commit()
-    db.refresh(take_food_id)
-    return take_food_id
+    db.refresh(food)
+    return food
+
+
+# Function to Delete Restaurant Food Menu Based On Given Food ID
+def delete_food_menu_by_id(db: Session, food_id: int):
+    food = db.query(FoodMenu).filter(FoodMenu.food_id == food_id).first()
+
+    if not food:
+        raise HTTPException(status_code=404, detail="Food not found")
+
+    db.delete(food)  # Delete the food entry from the database
+    db.commit()  # Commit the transaction
 
 
 # Function to Add Food Item InTo Cart

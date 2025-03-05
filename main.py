@@ -27,7 +27,7 @@ create_tables()
 @app.post("/user/create", response_model=TokenSignupResponse, tags=["User"])
 def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
     try:
-        created_user = create_user(db, user)
+        create_user(db, user)
     except HTTPException as e:
         raise e
     # access_token = create_access_token(data={"sub": created_user.user_name})
@@ -102,7 +102,36 @@ def create_restaurant_food_menu(menu: CreateFoodMenu,
     create_food_menu(db, current_user.user_id, menu)
     return {
         "message": "Food Item Successfully Added in Restaurant Food Menu"
+    }
 
+
+# update Food  Menu Item
+@app.put("/food_menu/update", tags=["Admin"])
+def update_food_menu(food_id: int, food_update: FoodMenuUpdate,
+                     current_user: User = Depends(get_current_user),
+                     db: Session = Depends(get_db)):
+    if current_user.role == "user":
+        raise HTTPException(status_code=403, detail="User are not authorized to update Menu")
+
+    update_food_menu_by_id(db, food_id, food_update)
+    return {
+        "message": "Food menu updated successfully",
+
+    }
+
+
+# Delete Food  Menu Item
+@app.delete("/food_menu/delete/", tags=["Admin"])
+def delete_food_menu(food_id: int,
+                     current_user: User = Depends(get_current_user),
+                     db: Session = Depends(get_db)):
+
+    if current_user.role == "user":
+        raise HTTPException(status_code=403, detail="User is not authorized to delete Menu")
+
+    delete_food_menu_by_id(db, food_id)
+    return {
+        "message": "Food menu Deleted successfully According to Given Food ID",
     }
 
 
