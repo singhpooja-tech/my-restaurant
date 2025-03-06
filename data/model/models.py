@@ -18,9 +18,14 @@ class User(Base):
     post_code = Column(Integer, nullable=True)
     role = Column(String, default="user", server_default="user")
 
+    # food_menus = relationship("FoodMenu", back_populates="user")
+    # carts = relationship("Cart", back_populates="user")
+    # orders = relationship("OrderFood", back_populates="user")
+    # feedbacks = relationship("Feedback", back_populates="user", cascade="all, delete-orphan")
+
     food_menus = relationship("FoodMenu", back_populates="user")
     carts = relationship("Cart", back_populates="user")
-    orders = relationship("OrderFood", back_populates="user")
+    orders = relationship("Orders", back_populates="user")
     feedbacks = relationship("Feedback", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -40,9 +45,13 @@ class FoodMenu(Base):
     price = Column(Float, nullable=False)
     user_id = Column(Integer, ForeignKey("users.user_id"))
 
+    # user = relationship("User", back_populates="food_menus")
+    # carts = relationship("Cart", back_populates="food")
+    # orders = relationship("OrderFood", back_populates="food")
+
     user = relationship("User", back_populates="food_menus")
     carts = relationship("Cart", back_populates="food")
-    orders = relationship("OrderFood", back_populates="food")
+    order_items = relationship("OrderItem", back_populates="food")
 
     def __repr__(self):
         return f"<Food(food_name={self.food_name}, price={self.price})>"
@@ -67,25 +76,36 @@ class Cart(Base):
                 f"quantity={self.quantity}, price={self.price})>")
 
 
-class OrderFood(Base):
+class Orders(Base):
     __tablename__ = "orders"
 
     order_no = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    food_id = Column(Integer, ForeignKey("food_menu.food_id"), nullable=False)
-    food_name = Column(String, nullable=False)
-    quantity = Column(Integer, nullable=False)
     user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    user_fullname = Column(String, nullable=False)
     status = Column(String, default="Pending")
     order_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     total_price = Column(Float, nullable=False)
 
     user = relationship("User", back_populates="orders")
-    food = relationship("FoodMenu", back_populates="orders")
+    order_items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return (f"<Order(order_no={self.order_no}, food_name={self.food_name}, "
-                f"quantity={self.quantity}, total_price={self.total_price})>")
+        return f"<Order(order_no={self.order_no}, status={self.status}, total_price={self.total_price})>"
+
+
+class OrderItem(Base):
+    __tablename__ = "order_item"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    order_no = Column(Integer, ForeignKey("orders.order_no"), nullable=False)
+    food_id = Column(Integer, ForeignKey("food_menu.food_id"), nullable=False)
+    food_name = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+
+    order = relationship("Orders", back_populates="order_items")
+    food = relationship("FoodMenu", back_populates="order_items")
+
+    def __repr__(self):
+        return f"<OrderItem(order_no={self.order_no}, food_name={self.food_name}, quantity={self.quantity})>"
 
 
 class Feedback(Base):

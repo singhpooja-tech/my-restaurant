@@ -117,3 +117,14 @@ class CreateFeedback(BaseModel):
     rating: float
 
 
+class OrderItemResponse(BaseModel):
+    order_no: int
+    food_id: int
+    food_name: str
+    quantity: int
+    total_price: float
+
+
+class OrderResponse(BaseModel):
+    orders: List[OrderItemResponse]
+

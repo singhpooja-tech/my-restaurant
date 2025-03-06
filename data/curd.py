@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from collections import defaultdict
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from data.schema.schemas import *
@@ -141,51 +142,83 @@ def add_to_cart(db: Session, user_id: int, cart_data: AddToCart):
 
 
 def place_order(db: Session, user_id: int):
-    # Fetch all cart items for the user
+    # Fetch cart items for the user
     cart_items = db.query(Cart).filter(Cart.user_id == user_id).all()
 
     if not cart_items:
-        raise HTTPException(status_code=400, detail="Your cart is empty")
+        raise HTTPException(status_code=400, detail="Cart is empty. Cannot place order.")
 
-    # Generate a single order ID (Auto-incremented)
-    first_order = OrderFood(
-        user_id=user_id,
-        user_fullname=db.query(User).filter(User.user_id == user_id).first().fullname,
-        status="Successful",
-        order_date=datetime.now(timezone.utc),
-        total_price=sum(item.total_price for item in cart_items),  # Total price of all cart items
-        food_id=cart_items[0].food_id,  # Assign first cart item's food_id (required to create entry)
-        food_name=cart_items[0].food_name,  # Assign first cart item's name
-        quantity=cart_items[0].quantity  # Assign first cart item's quantity
-    )
-    db.add(first_order)
-    db.commit()  # Commit first to generate order_no
-    db.refresh(first_order)
+    # Get the last order number and increment it
+    last_order = db.query(Orders).order_by(Orders.order_no.desc()).first()
+    order_no = last_order.order_no + 1 if last_order else 1  # Start from 1
 
-    # Now use first_order.order_no for all order items
-    for cart_item in cart_items:
-        order = OrderFood(
-            order_no=first_order.order_no,  # Use the same order number for all items
-            food_id=cart_item.food_id,
-            food_name=cart_item.food_name,
-            quantity=cart_item.quantity,
-            user_id=cart_item.user_id,
-            user_fullname=first_order.user_fullname,
-            status="Successful",
-            total_price=cart_item.total_price,
+    # Calculate total order price
+    total_price = sum(item.total_price for item in cart_items)
+
+    try:
+        # Create a new order record
+        new_order = Orders(
+            order_no=order_no,
+            user_id=user_id,
+            status="Completed",
+            order_date=datetime.now(timezone.utc),
+            total_price=total_price
         )
-        db.add(order)
+        db.add(new_order)
+        db.flush()  # Flush to get the order ID before committing
 
-        # Reduce food quantity from FoodMenu
-        food_item = db.query(FoodMenu).filter(FoodMenu.food_id == cart_item.food_id).first()
-        if food_item:
-            food_item.quantity -= cart_item.quantity
+        # Move cart items to the order_items table
+        for item in cart_items:
+            order_item = OrderItem(
+                order_no=new_order.order_no,
+                food_id=item.food_id,
+                food_name=item.food_name,
+                quantity=item.quantity,
+            )
+            db.add(order_item)
 
-    # Clear the cart after placing the order
-    db.query(Cart).filter(Cart.user_id == user_id).delete()
+        # Delete all cart items for the user
+        db.query(Cart).filter(Cart.user_id == user_id).delete()
+        db.commit()
 
-    db.commit()
-    return {"message": "Order placed successfully!", "order_no": first_order.order_no}
+        return {"message": "Order placed successfully!", "order_no": order_no, "total_price": total_price}
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+def get_orders_by_date(db: Session):
+    # Fetch orders data from the database, including the total_price from the Orders table
+    orders_data = db.query(
+        Orders.order_no,
+        Orders.total_price,  # Get total price from Orders table
+        OrderItem.food_id,
+        OrderItem.food_name,
+        OrderItem.quantity
+    ).join(OrderItem).all()
+
+    # Group orders by order_no
+    grouped_orders = defaultdict(lambda: {"order_no": None, "total_price": 0, "items": []})
+
+    for order in orders_data:
+        order_no = order.order_no
+        total_price = order.total_price  # Get total price from the Orders table
+        food_id = order.food_id
+        food_name = order.food_name
+        quantity = order.quantity
+
+        # Group items by order_no
+        grouped_orders[order_no]["order_no"] = order_no
+        grouped_orders[order_no]["total_price"] = total_price  # Use total price from Orders table
+        grouped_orders[order_no]["items"].append({
+            "food_id": food_id,
+            "food_name": food_name,
+            "quantity": quantity
+        })
+
+    # Return grouped orders
+    return grouped_orders
 
 
 def create_feedback(db: Session, user_id: int, fullname: str, feedback: CreateFeedback):

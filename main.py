@@ -180,12 +180,41 @@ def view_cart(db: Session = Depends(get_db),
     }
 
 
-@app.post("/order/place", tags=["User"])
-def place_order_api(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@app.post("/place-order", tags=["User"])
+def place_order_api(db: Session = Depends(get_db),
+                    current_user: User = Depends(get_current_user)):
     if current_user.role == "admin":
-        raise HTTPException(status_code=403, detail="Only users can place orders")
+        raise HTTPException(status_code=403, detail="Only users can place orders.")
 
     return place_order(db, current_user.user_id)
+
+
+# @app.get("/admin/orders-by-date", tags=["Admin"])
+# def get_orders_by_date_api(start_date: datetime,
+#                            end_date: datetime,
+#                            db: Session = Depends(get_db),
+#                            current_user: User = Depends(get_current_user)):
+#
+#     # Check if the current user is an admin
+#     if current_user.role == "user":
+#         raise HTTPException(status_code=403, detail="Only admins can Check Orders.")
+#
+#     # Fetch orders data
+#     orders = get_orders_by_date(db, start_date, end_date)
+#
+#     return {"orders": orders}
+@app.get("/admin/orders-by-date", tags=["Admin"])
+def get_orders(db: Session = Depends(get_db)):
+    # Call the function from crud.py to get grouped orders
+    grouped_orders = get_orders_by_date(db)
+
+    # Prepare the response data
+    response_data = {
+        "no_of_orders": len(grouped_orders),
+        "orders": list(grouped_orders.values())
+    }
+
+    return response_data
 
 
 @app.post("/create/feedback/", tags=["User"])
@@ -198,7 +227,7 @@ def create_feedback_endpoint(feedback: CreateFeedback,
         raise HTTPException(status_code=403, detail="Admin cannot submit feedback")
 
     # Call the CRUD function to store feedback
-    new_feedback = create_feedback(db, current_user.user_id,current_user.fullname, feedback)
+    new_feedback = create_feedback(db, current_user.user_id, current_user.fullname, feedback)
 
     return {
         "message": "Feedback submitted successfully",
@@ -213,6 +242,4 @@ def get_all_feedback_endpoint(db: Session = Depends(get_db), current_user: User 
 
     # Fetch all feedback using the CRUD function
     feedback_list = get_all_feedback(db)
-
     return {"feedback": feedback_list}
-
