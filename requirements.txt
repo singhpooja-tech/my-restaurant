@@ -7,3 +7,4 @@ pydantic
 passlib[bcrypt]  # For password hashing
 pyjwt
 python-jose[cryptography]
+email-validator
