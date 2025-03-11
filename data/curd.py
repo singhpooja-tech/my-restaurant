@@ -78,6 +78,7 @@ def create_food_menu(db: Session, user_id: int, food_menu: CreateFoodMenu):
         category=food_menu.category,
         is_active=food_menu.is_active,
         price=food_menu.price,
+        food_image_url=food_menu.food_image_url,
         user_id=user_id  # Ensure this is an integer
     )
 
@@ -176,6 +177,13 @@ def place_order(db: Session, user_id: int):
                 quantity=item.quantity,
             )
             db.add(order_item)
+            # Decrease the food quantity in the menu
+            food_item = db.query(FoodMenu).filter(FoodMenu.food_id == item.food_id).first()
+            if food_item:
+                if food_item.quantity < item.quantity:
+                    raise HTTPException(status_code=400, detail=f"Not enough stock for {food_item.food_name}.")
+                food_item.quantity -= item.quantity  # Deduct ordered quantity
+                db.add(food_item)
 
         # Delete all cart items for the user
         db.query(Cart).filter(Cart.user_id == user_id).delete()
@@ -188,36 +196,37 @@ def place_order(db: Session, user_id: int):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
-def get_orders_by_date(db: Session):
-    # Fetch orders data from the database, including the total_price from the Orders table
+def get_orders_by_date(db: Session, start_date, end_date):
+    # Fetch orders within the date range
     orders_data = db.query(
         Orders.order_no,
-        Orders.total_price,  # Get total price from Orders table
+        Orders.total_price,
         OrderItem.food_id,
         OrderItem.food_name,
         OrderItem.quantity
-    ).join(OrderItem).all()
+    ).join(OrderItem).filter(
+        Orders.order_date >= start_date,
+        Orders.order_date <= end_date
+    ).all()
 
     # Group orders by order_no
     grouped_orders = defaultdict(lambda: {"order_no": None, "total_price": 0, "items": []})
 
     for order in orders_data:
         order_no = order.order_no
-        total_price = order.total_price  # Get total price from the Orders table
+        total_price = order.total_price
         food_id = order.food_id
         food_name = order.food_name
         quantity = order.quantity
 
-        # Group items by order_no
         grouped_orders[order_no]["order_no"] = order_no
-        grouped_orders[order_no]["total_price"] = total_price  # Use total price from Orders table
+        grouped_orders[order_no]["total_price"] = total_price
         grouped_orders[order_no]["items"].append({
             "food_id": food_id,
             "food_name": food_name,
             "quantity": quantity
         })
 
-    # Return grouped orders
     return grouped_orders
 
 

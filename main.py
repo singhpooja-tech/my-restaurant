@@ -7,8 +7,10 @@ from data.schema.schemas import *
 from data.model.models import User, FoodMenu
 from typing import List
 from swagger_config import custom_openapi  # Import the custom Swagger configuration
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="templates/images/menu"), name="static")
 
 # Apply the custom Swagger configuration
 app.openapi = lambda: custom_openapi(app)
@@ -24,7 +26,7 @@ create_tables()
 
 
 # Signup Endpoint (Public Route)
-@app.post("/user/create", response_model=TokenSignupResponse, tags=["User"])
+@app.post("/user/register", summary=" ", response_model=TokenSignupResponse, tags=["Authentication"])
 def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
     try:
         create_user(db, user)
@@ -38,7 +40,7 @@ def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
 
 
 # Login Endpoint
-@app.post("/login", response_model=TokenLoginResponse, tags=["User"])
+@app.post("/ welcome message", summary="After Login", response_model=TokenLoginResponse, tags=["Authentication"])
 def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
     user = get_user_by_username(db, login_data.user_name)
     if not user or not verify_password(login_data.password, user.password):
@@ -52,7 +54,7 @@ def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
 
 
 # Protected Route
-@app.get("/me", response_model=UserInformation, tags=["User"])
+@app.get("/me", summary="Current User Info", response_model=UserInformation, tags=["user_information"])
 def get_me(current_user: User = Depends(get_current_user)):
     """
     Get the current user's information.
@@ -71,7 +73,7 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 # Update Current User (Admins cannot update users)
-@app.put("/me/update", response_model=UserInformation, tags=["User"])
+@app.put("/me/update", summary="Update Current User Info", response_model=UserProfileUpdateResponse, tags=["user_information"])
 def get_updated_user(user_update: UserProfileUpdate,
                      current_user: User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
@@ -80,19 +82,12 @@ def get_updated_user(user_update: UserProfileUpdate,
 
     updated_user = update_user_info(db, current_user.user_id, user_update)
     return {
-        "fullname": updated_user.fullname,
-        "user_name": updated_user.user_name,
-        "email": updated_user.email,
-        "phone_no": updated_user.phone_no,
-        "address": updated_user.address,
-        "post_code": updated_user.post_code,
-        "role": updated_user.role,
-        "created_date": updated_user.created_date
+        "msg": "user profile is updated"
     }
 
 
 # Create Restaurant Menu(Only Admin Can DO)
-@app.post("/food_menu/add", response_model=CreateFoodMenuResponse, tags=["Admin"])
+@app.post("/menu/add", summary="Add New Food Item", response_model=CreateFoodMenuResponse, tags=["admin_dashboard"])
 def create_restaurant_food_menu(menu: CreateFoodMenu,
                                 db: Session = Depends(get_db),
                                 current_user: User = Depends(get_current_user)):
@@ -106,7 +101,7 @@ def create_restaurant_food_menu(menu: CreateFoodMenu,
 
 
 # update Food  Menu Item
-@app.put("/food_menu/update", tags=["Admin"])
+@app.put("/menu/update", summary="Update Food Item by ID", tags=["admin_dashboard"])
 def update_food_menu(food_id: int, food_update: FoodMenuUpdate,
                      current_user: User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
@@ -121,7 +116,7 @@ def update_food_menu(food_id: int, food_update: FoodMenuUpdate,
 
 
 # Delete Food  Menu Item
-@app.delete("/food_menu/delete/", tags=["Admin"])
+@app.delete("/menu/delete/", summary="Delete Food Item by ID", tags=["admin_dashboard"])
 def delete_food_menu(food_id: int,
                      current_user: User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
@@ -136,17 +131,26 @@ def delete_food_menu(food_id: int,
 
 
 # Get Menu Item
-@app.get("/get_food_menu", response_model=List[GetFoodMenuResponse], tags=["User"])
+@app.get("/menu", summary=" ", response_model=List[GetFoodMenuResponse], tags=["user_dashboard"])
 def get_restaurant_menu(db: Session = Depends(get_db)):
     """
         Get All the current Food Menu.
     """
     menu = db.query(FoodMenu).all()
-    return menu
+    # Return the image URL as a string (no markdown or HTML)
+    return [{
+        "food_id": food.food_id,
+        "food_name": food.food_name,
+        "quantity": food.quantity,
+        "description": food.description,
+        "category": food.category,
+        "price": food.price,
+        "food_image_url": f"http://localhost:8000{food.food_image_url}"  # Just a plain URL
+    } for food in menu]
 
 
 # Add Food Item In Cart(User Only)
-@app.post("/cart/add", tags=["User"])
+@app.post("/select_food", summary="Add Food In Cart", tags=["user_dashboard"])
 def add_item_to_cart(cart_data: AddToCart,
                      db: Session = Depends(get_db),
                      current_user: User = Depends(get_current_user)):
@@ -161,7 +165,7 @@ def add_item_to_cart(cart_data: AddToCart,
 
 
 # Get Cart Item
-@app.get("/cart", response_model=CartResponse, tags=["User"])
+@app.get("/cart", summary=" ", response_model=CartResponse, tags=["user_dashboard"])
 def view_cart(db: Session = Depends(get_db),
               current_user: User = Depends(get_current_user)):
     if current_user.role == "admin":
@@ -180,7 +184,7 @@ def view_cart(db: Session = Depends(get_db),
     }
 
 
-@app.post("/place-order", tags=["User"])
+@app.post("/order", summary="Place Order", tags=["user_dashboard"])
 def place_order_api(db: Session = Depends(get_db),
                     current_user: User = Depends(get_current_user)):
     if current_user.role == "admin":
@@ -203,21 +207,33 @@ def place_order_api(db: Session = Depends(get_db),
 #     orders = get_orders_by_date(db, start_date, end_date)
 #
 #     return {"orders": orders}
-@app.get("/admin/orders-by-date", tags=["Admin"])
-def get_orders(db: Session = Depends(get_db)):
-    # Call the function from crud.py to get grouped orders
-    grouped_orders = get_orders_by_date(db)
+@app.get("/orders/?sortBy='date'", summary=" ", tags=["admin_dashboard"])
+def get_orders(start_date: str, end_date: str, db: Session = Depends(get_db)):
 
-    # Prepare the response data
-    response_data = {
-        "no_of_orders": len(grouped_orders),
-        "orders": list(grouped_orders.values())
-    }
+    try:
+        # Convert date strings to datetime objects
+        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        end_date = datetime.strptime(end_date, "%Y-%m-%d")
 
-    return response_data
+        # Validate date range
+        if start_date > end_date:
+            raise HTTPException(status_code=400, detail="Start date must be before end date.")
+
+        # Call the function from crud.py to get orders in the date range
+        grouped_orders = get_orders_by_date(db, start_date, end_date)
+
+        # Prepare response
+        response_data = {
+            "no_of_orders": len(grouped_orders),
+            "orders": list(grouped_orders.values())
+        }
+        return response_data
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
 
-@app.post("/create/feedback/", tags=["User"])
+@app.post("/feedback/", summary="Create Feedback and Rating", tags=["user_dashboard"])
 def create_feedback_endpoint(feedback: CreateFeedback,
                              db: Session = Depends(get_db),
                              current_user: User = Depends(get_current_user)):
@@ -235,7 +251,7 @@ def create_feedback_endpoint(feedback: CreateFeedback,
     }
 
 
-@app.get("/get/feedback/", tags=["Admin"])
+@app.get("/feedbacks/", summary="Get All Feedbacks of User", tags=["admin_dashboard"])
 def get_all_feedback_endpoint(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can view all feedback")

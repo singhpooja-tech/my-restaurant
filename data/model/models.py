@@ -44,6 +44,7 @@ class FoodMenu(Base):
     created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     price = Column(Float, nullable=False)
     user_id = Column(Integer, ForeignKey("users.user_id"))
+    food_image_url = Column(String, nullable=True)
 
     # user = relationship("User", back_populates="food_menus")
     # carts = relationship("Cart", back_populates="food")

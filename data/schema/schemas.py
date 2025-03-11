@@ -64,6 +64,10 @@ class UserProfileUpdate(BaseModel):
     post_code: Optional[int] = None
 
 
+class UserProfileUpdateResponse(BaseModel):
+    msg: str
+
+
 # Create Restaurant Menu
 class CreateFoodMenu(BaseModel):
     food_name: str
@@ -72,6 +76,7 @@ class CreateFoodMenu(BaseModel):
     category: str
     is_active: str
     price: float
+    food_image_url: Optional[str]
 
 
 class FoodMenuUpdate(BaseModel):
@@ -90,6 +95,7 @@ class GetFoodMenuResponse(BaseModel):
     description: str | None
     category: str
     price: float
+    food_image_url: Optional[str]
 
 
 # Create Cart to store Order Food
@@ -103,13 +109,13 @@ class CartItemResponse(BaseModel):
     food_name: str
     quantity: int
     price: float
-    total_price: float  # This field is already in your Cart model
+    total_price: float
 
 
 # Model for the complete Cart Response including the total price
 class CartResponse(BaseModel):
     cart_items: List[CartItemResponse]
-    total_price: float  # Single total price for all cart items
+    total_price: float
 
 
 class CreateFeedback(BaseModel):
