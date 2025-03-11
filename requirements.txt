@@ -6,3 +6,4 @@ psycopg2-binary  # Use this for PostgreSQL
 pydantic
 passlib[bcrypt]  # For password hashing
 pyjwt
+python-jose[cryptography]
