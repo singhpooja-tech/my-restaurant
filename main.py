@@ -12,6 +12,12 @@ from fastapi.staticfiles import StaticFiles
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="templates/images/menu"), name="static")
 
+
+@app.get("/")
+def home():
+    return {"message": "Welcome to my FastAPI restaurant app!"}
+
+
 # Apply the custom Swagger configuration
 app.openapi = lambda: custom_openapi(app)
 
