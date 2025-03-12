@@ -13,7 +13,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="templates/images/menu"), name="static")
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def home():
     return {"message": "Welcome to my FastAPI restaurant app!"}
 
@@ -79,7 +79,8 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 # Update Current User (Admins cannot update users)
-@app.put("/me/update", summary="Update Current User Info", response_model=UserProfileUpdateResponse, tags=["user_information"])
+@app.put("/me/update", summary="Update Current User Info", response_model=UserProfileUpdateResponse,
+         tags=["user_information"])
 def get_updated_user(user_update: UserProfileUpdate,
                      current_user: User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
