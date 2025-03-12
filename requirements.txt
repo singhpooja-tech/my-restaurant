@@ -2,9 +2,11 @@ fastapi
 uvicorn
 python-dotenv
 sqlalchemy
-psycopg2-binary  # Use this for PostgreSQL
+psycopg2-binary  # PostgreSQL driver
 pydantic
-passlib[bcrypt]  # For password hashing
+passlib[bcrypt]  # Password hashing
 pyjwt
 python-jose[cryptography]
-email-validator
+email-validator  # Fix for incorrect package name
+gunicorn  # Required for production deployment
+

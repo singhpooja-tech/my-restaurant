@@ -259,3 +259,12 @@ def get_all_feedback_endpoint(db: Session = Depends(get_db), current_user: User 
     # Fetch all feedback using the CRUD function
     feedback_list = get_all_feedback(db)
     return {"feedback": feedback_list}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+

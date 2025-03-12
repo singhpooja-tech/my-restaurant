@@ -55,3 +55,5 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     user.role = role
     return user
 
+
+

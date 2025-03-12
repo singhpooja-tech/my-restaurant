@@ -247,3 +247,4 @@ def create_feedback(db: Session, user_id: int, fullname: str, feedback: CreateFe
 def get_all_feedback(db: Session):
     """Fetch all feedback from the database"""
     return db.query(Feedback).all()
+
