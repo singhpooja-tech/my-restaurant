@@ -8,5 +8,6 @@ passlib[bcrypt]  # Password hashing
 pyjwt
 python-jose[cryptography]
 email-validator  # Fix for incorrect package name
-gunicorn  # Required for production deployment
+gunicorn # Required for production deployment
+alembic
 
