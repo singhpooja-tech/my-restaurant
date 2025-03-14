@@ -22,10 +22,10 @@ def custom_openapi(app):
 
     # Apply authentication to protected routes only
     protected_routes = ["/me", "/me/update",
-                        "/menu/add", "/menu", "/select_food",
-                        "/cart", "/order", "/feedback/",
-                        "/get/feedback/", "/menu/delete/",
-                        "/menu/update", "/orders/?sortBy='date'"]  # Add other protected routes here if needed
+                        "/menu/add", "/menu", "/select_food/{id}",
+                        "/cart", "/order", "/feedback",
+                        "/feedbacks",
+                        "/menu/{id}", "/orders/{date}"]  # Add other protected routes here if needed
     for path, methods in openapi_schema["paths"].items():
         for method in methods.values():
             if path in protected_routes:

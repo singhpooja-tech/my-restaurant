@@ -52,7 +52,7 @@ class FoodMenu(Base):
 
     user = relationship("User", back_populates="food_menus")
     carts = relationship("Cart", back_populates="food")
-    order_items = relationship("OrderItem", back_populates="food")
+    order_items = relationship("OrderItem", back_populates="food", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Food(food_name={self.food_name}, price={self.price})>"
@@ -98,7 +98,7 @@ class OrderItem(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     order_no = Column(Integer, ForeignKey("orders.order_no"), nullable=False)
-    food_id = Column(Integer, ForeignKey("food_menu.food_id"), nullable=False)
+    food_id = Column(Integer, ForeignKey("food_menu.food_id", ondelete="CASCADE"), nullable=False)
     food_name = Column(String, nullable=False)
     quantity = Column(Integer, nullable=False)
 
