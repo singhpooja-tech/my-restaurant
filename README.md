@@ -66,3 +66,12 @@ Clone the repo with "git clone " and install the dependencies from the requireme
 - Admin Dashboard (Optional): Admins can manage users, orders, and food items via a dashboard interface.
 
 - Search & Filtering (Optional): Users can search for food items and filter by categories or price.
+
+
+## Deployment
+
+To deploy this project run
+
+```bash
+  https://my-restaurant-m5d7.onrender.com
+```
