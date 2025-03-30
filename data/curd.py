@@ -66,6 +66,57 @@ def update_user_info(db: Session, user_id: int, user_update: UserProfileUpdate):
     return user
 
 
+def create_category(db: Session, user_id: int, food_category:CreateCategory):
+    # Fetch user from DB
+    user = db.query(User).filter(User.user_id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if user is an admin
+    if user.role.lower() == "user":
+        raise HTTPException(status_code=403, detail="Only admin can add categories")
+
+    # Check if category already exists
+    if db.query(Category).filter(Category.name == food_category.name).first():
+        raise HTTPException(status_code=400, detail="This category is already in available")
+
+    category = Category(
+        name=food_category.name,
+        image_url=food_category.image_url
+    )
+
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+# Function to Delete category Menu Based On Given Food ID
+def delete_category_by_id(db: Session, category_id: int):
+    category = db.query(Category).filter(Category.category_id == category_id).first()
+
+    if not category:
+        raise HTTPException(status_code=404, detail="category not found")
+
+    db.delete(category)  # Delete the food entry from the database
+    db.commit()
+
+
+# Function to Update Category Based On Given Food ID
+def update_category_by_id(db: Session, category_id: int, food_category: UpdateCategory):
+    category = db.query(Category).filter(Category.category_id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="category not found")
+    update_category = food_category.model_dump(exclude_unset=True)
+    for key, value in update_category.items():
+        setattr(category, key, value)
+
+    db.commit()
+    db.refresh(category)
+    return category
+
+
 # Function to Create Restaurant Food Menu
 def create_food_menu(db: Session, user_id: int, food_menu: CreateFoodMenu):
     if db.query(FoodMenu).filter(FoodMenu.food_name == food_menu.food_name).first():
@@ -75,7 +126,8 @@ def create_food_menu(db: Session, user_id: int, food_menu: CreateFoodMenu):
         food_name=food_menu.food_name,
         description=food_menu.description,
         quantity=food_menu.quantity,
-        category=food_menu.category,
+        category_id=food_menu.category_id,
+        category_name=food_menu.category_name,
         is_active=food_menu.is_active,
         price=food_menu.price,
         food_image_url=food_menu.food_image_url,

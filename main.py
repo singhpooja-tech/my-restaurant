@@ -4,13 +4,14 @@ from data.database import *
 from auth import create_access_token, get_current_user
 from data.curd import *
 from data.schema.schemas import *
-from data.model.models import User, FoodMenu
+from data.model.models import *
 from typing import List
 from swagger_config import custom_openapi  # Import the custom Swagger configuration
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="templates/images/menu"), name="static")
+app.mount("/menu_images", StaticFiles(directory="templates/images/menu"), name="menu_images")
+app.mount("/category_images", StaticFiles(directory="templates/images/category"), name="category_images")
 
 
 @app.get("/", summary="Welcome Message", tags=["Home"])
@@ -93,6 +94,65 @@ def get_updated_user(user_update: UserProfileUpdate,
     }
 
 
+# Create Category(Only Admin Can DO)
+@app.post("/category", summary="Add Category Item (Admin)", response_model=UserProfileUpdateResponse, tags=["menu"])
+def create_food_category(category: CreateCategory,
+                         db: Session = Depends(get_db),
+                         current_user: User = Depends(get_current_user)):
+    create_category(db, current_user.user_id, category)
+    return {
+        "msg": "Item Successfully Added in Category"
+    }
+
+
+# Get All Category(Admin & User)
+@app.get("/category", summary="Get all category Item (Admin & User) ", response_model=List[CreateCategory],
+         tags=["menu"])
+def get_category(db: Session = Depends(get_db)):
+
+    """
+
+        Get All the current Food Menu.
+
+    """
+    category = db.query(Category).all()
+    # Return the image URL as a string (no markdown or HTML)
+    return [{
+        "category_id": food.category_id,
+        "name": food.name,
+        "image_url": f"http://localhost:8000/{food.image_url}"  # Just a plain URL
+    } for food in category]
+
+
+@app.delete("/category/{id}", summary="Delete category Item (Admin)", tags=["menu"])
+def delete_category_item(category_id: int,
+                         current_user: User = Depends(get_current_user),
+                         db: Session = Depends(get_db)):
+
+    if current_user.role == "user":
+        raise HTTPException(status_code=403, detail="User is not authorized to delete Menu")
+
+    delete_category_by_id(db, category_id)
+    return {
+        "message": "Category Deleted successfully According to Given ID",
+    }
+
+
+# update Category Item
+@app.put("/category/{id}", summary="Update Category Item (Admin)", tags=["menu"])
+def update_category_item(food_id: int, category_update: UpdateCategory,
+                         current_user: User = Depends(get_current_user),
+                         db: Session = Depends(get_db)):
+    if current_user.role == "user":
+        raise HTTPException(status_code=403, detail="User are not authorized to update Menu")
+
+    update_category_by_id(db, food_id, category_update)
+    return {
+        "message": "Food menu updated successfully",
+
+    }
+
+
 # Create Restaurant Menu(Only Admin Can DO)
 @app.post("/menu", summary="Add New Menu Item (Admin)", response_model=CreateFoodMenuResponse, tags=["menu"])
 def create_restaurant_food_menu(menu: CreateFoodMenu,
@@ -138,21 +198,33 @@ def delete_food_menu(food_id: int,
 
 
 # Get Menu Item
-@app.get("/menu", summary="Get all Menu Item (Admin & User) ", response_model=List[GetFoodMenuResponse], tags=["menu"])
-def get_restaurant_menu(db: Session = Depends(get_db)):
+@app.get("/menu/{Category}", summary="Get all Menu Item by Category (Admin & User) ",
+         response_model=List[GetFoodMenuResponse], tags=["menu"])
+def get_restaurant_menu(category_name: str = "All", db: Session = Depends(get_db)):
     """
-        Get All the current Food Menu.
+    Get all the current Food Menu according category_name
     """
-    menu = db.query(FoodMenu).all()
-    # Return the image URL as a string (no markdown or HTML)
+    if category_name == "All":
+        # If category_name is 'All', get all the menu items
+        menu = db.query(FoodMenu).all()
+    else:
+        # Otherwise, filter by category_name
+        category = db.query(Category).filter(Category.name == category_name).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+        menu = db.query(FoodMenu).filter(FoodMenu.category_name == category_name).all()
+
+    # Return the food menu data with image URLs
     return [{
         "food_id": food.food_id,
         "food_name": food.food_name,
         "quantity": food.quantity,
         "description": food.description,
-        "category": food.category,
+        "category_id": food.category_id,
+        "category_name": food.category_name,
         "price": food.price,
-        "food_image_url": f"http://localhost:8000{food.food_image_url}"  # Just a plain URL
+        "food_image_url": f"http://localhost:8000/{food.food_image_url}"  # Just a plain URL
     } for food in menu]
 
 
@@ -273,5 +345,3 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
-
-

@@ -68,12 +68,24 @@ class UserProfileUpdateResponse(BaseModel):
     msg: str
 
 
+class CreateCategory(BaseModel):
+    category_id: int
+    name: str
+    image_url: Optional[str]
+
+
+class UpdateCategory(BaseModel):
+    name: str
+    image_url: Optional[str]
+
+
 # Create Restaurant Menu
 class CreateFoodMenu(BaseModel):
     food_name: str
     description: str | None
     quantity: int
-    category: str
+    category_id: int
+    category_name: str
     is_active: str
     price: float
     food_image_url: Optional[str]
@@ -93,7 +105,8 @@ class GetFoodMenuResponse(BaseModel):
     food_name: str
     quantity: int
     description: str | None
-    category: str
+    category_id: int
+    category_name: str
     price: float
     food_image_url: Optional[str]
 

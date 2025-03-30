@@ -32,6 +32,20 @@ class User(Base):
         return f"<User(user_name={self.user_name}, email={self.email})>"
 
 
+class Category(Base):
+    __tablename__ = "categories"
+
+    category_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String, unique=True, nullable=False)
+    image_url = Column(String, nullable=True)
+    created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    food_menus = relationship("FoodMenu", back_populates="category", cascade="all, delete", passive_deletes=True)
+
+    def __repr__(self):
+        return f"<Category(name={self.name})>"
+
+
 class FoodMenu(Base):
     __tablename__ = "food_menu"
 
@@ -39,7 +53,8 @@ class FoodMenu(Base):
     food_name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     quantity = Column(Integer, nullable=False)
-    category = Column(String, nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.category_id", ondelete="CASCADE"), nullable=False)
+    category_name = Column(String, nullable=False)
     is_active = Column(String, default="Yes")
     created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     price = Column(Float, nullable=False)
@@ -50,6 +65,7 @@ class FoodMenu(Base):
     # carts = relationship("Cart", back_populates="food")
     # orders = relationship("OrderFood", back_populates="food")
 
+    category = relationship("Category", back_populates="food_menus")
     user = relationship("User", back_populates="food_menus")
     carts = relationship("Cart", back_populates="food")
     order_items = relationship("OrderItem", back_populates="food", cascade="all, delete-orphan")
