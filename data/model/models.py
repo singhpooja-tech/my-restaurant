@@ -18,11 +18,6 @@ class User(Base):
     post_code = Column(Integer, nullable=True)
     role = Column(String, default="user", server_default="user")
 
-    # food_menus = relationship("FoodMenu", back_populates="user")
-    # carts = relationship("Cart", back_populates="user")
-    # orders = relationship("OrderFood", back_populates="user")
-    # feedbacks = relationship("Feedback", back_populates="user", cascade="all, delete-orphan")
-
     food_menus = relationship("FoodMenu", back_populates="user")
     carts = relationship("Cart", back_populates="user")
     orders = relationship("Orders", back_populates="user")
@@ -60,10 +55,6 @@ class FoodMenu(Base):
     price = Column(Float, nullable=False)
     user_id = Column(Integer, ForeignKey("users.user_id"))
     food_image_url = Column(String, nullable=True)
-
-    # user = relationship("User", back_populates="food_menus")
-    # carts = relationship("Cart", back_populates="food")
-    # orders = relationship("OrderFood", back_populates="food")
 
     category = relationship("Category", back_populates="food_menus")
     user = relationship("User", back_populates="food_menus")
