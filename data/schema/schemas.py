@@ -74,6 +74,11 @@ class CreateCategory(BaseModel):
     image_url: Optional[str]
 
 
+class CreateCategoryRequest(BaseModel):
+    name: str
+    image_url: Optional[str]
+
+
 class UpdateCategory(BaseModel):
     name: str
     image_url: Optional[str]
